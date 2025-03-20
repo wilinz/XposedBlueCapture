@@ -46,7 +46,7 @@ class Hook : IXposedHookLoadPackage {
 
                             val hex = value.joinToString(" ") { String.format("%02x", it) }
                             XposedBridge.log(
-                                "writeCharacteristic hex: $hex utf8: $value writeType: $writeType gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
+                                "writeCharacteristic hex: $hex utf8: ${value.toString(Charsets.UTF_8)} writeType: $writeType gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
                             )
                         }
                     })
@@ -77,7 +77,7 @@ class Hook : IXposedHookLoadPackage {
 
                             val hex = value.joinToString(" ") { String.format("%02x", it) }
                             XposedBridge.log(
-                                "readCharacteristic hex: $hex utf8: $value status: $status gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
+                                "readCharacteristic hex: $hex utf8: ${value.toString(Charsets.UTF_8)} status: $status gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
                             )
 
                         }
