@@ -24,9 +24,12 @@ class Hook : IXposedHookLoadPackage {
                                 param.args[0] as BluetoothGattCharacteristic
                             val mValue: ByteArray? = bluetoothGattCharacteristic.value
 
+                            // 获取服务 UUID
+                            val serviceUuid = bluetoothGattCharacteristic.service.uuid
+
                             val str = mValue?.joinToString(" ") { String.format("%02x", it) } ?: ""
                             XposedBridge.log(
-                                "writeCharacteristic str: $str gatt char: ${bluetoothGattCharacteristic.uuid}"
+                                "writeCharacteristic hex: $str gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
                             )
                         }
                     })
@@ -40,12 +43,16 @@ class Hook : IXposedHookLoadPackage {
                                 param.args[0] as BluetoothGattCharacteristic
                             val mValue: ByteArray? = bluetoothGattCharacteristic.value
 
+                            // 获取服务 UUID
+                            val serviceUuid = bluetoothGattCharacteristic.service.uuid
+
                             val str = mValue?.joinToString(" ") { String.format("%02x", it) } ?: ""
                             XposedBridge.log(
-                                "readCharacteristic str: $str gatt char: ${bluetoothGattCharacteristic.uuid}"
+                                "readCharacteristic hex: $str gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
                             )
                         }
                     })
+
             }
         } catch (e: Exception) {
             XposedBridge.log("BluetoothGatt Capture Exception: $e")
