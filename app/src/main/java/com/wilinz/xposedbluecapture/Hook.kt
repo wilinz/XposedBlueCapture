@@ -1,7 +1,8 @@
 package com.wilinz.xposedbluecapture
 
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
-import android.util.Log
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -15,41 +16,55 @@ class Hook : IXposedHookLoadPackage {
         XposedBridge.log("hello BluetoothGatt")
         try {
             if (bluetooth != null) {
-                XposedHelpers.findAndHookMethod(bluetooth, "writeCharacteristic",
+                XposedHelpers.findAndHookMethod(
+                    bluetooth, "writeCharacteristic",
                     BluetoothGattCharacteristic::class.java, object : XC_MethodHook() {
                         @Throws(Throwable::class)
                         override fun afterHookedMethod(param: MethodHookParam) {
                             super.afterHookedMethod(param)
                             val bluetoothGattCharacteristic: BluetoothGattCharacteristic =
                                 param.args[0] as BluetoothGattCharacteristic
-                            val mValue: ByteArray? = bluetoothGattCharacteristic.value
+                            val value: ByteArray? = bluetoothGattCharacteristic.value
 
                             // 获取服务 UUID
                             val serviceUuid = bluetoothGattCharacteristic.service.uuid
 
-                            val str = mValue?.joinToString(" ") { String.format("%02x", it) } ?: ""
+                            val hex = value?.joinToString(" ") { String.format("%02x", it) } ?: ""
                             XposedBridge.log(
-                                "writeCharacteristic hex: $str gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
+                                "writeCharacteristic hex: $hex utf8: $value gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
                             )
                         }
                     })
 
-                XposedHelpers.findAndHookMethod(bluetooth, "readCharacteristic",
-                    BluetoothGattCharacteristic::class.java, object : XC_MethodHook() {
+                XposedHelpers.findAndHookMethod(
+                    "android.bluetooth.BluetoothGattCallback",
+                    lpparam.classLoader,
+                    "onCharacteristicRead",
+                    BluetoothGatt::class.java,
+                    BluetoothGattCharacteristic::class.java,
+                    ByteArray::class.java,
+                    Int::class.java,
+                    object : XC_MethodHook() {
                         @Throws(Throwable::class)
-                        override fun afterHookedMethod(param: MethodHookParam) {
-                            super.afterHookedMethod(param)
+                        override fun beforeHookedMethod(param: MethodHookParam?) {
+                            super.beforeHookedMethod(param)
+
+                            val gatt = param?.args?.get(0) as BluetoothGatt
+
                             val bluetoothGattCharacteristic: BluetoothGattCharacteristic =
-                                param.args[0] as BluetoothGattCharacteristic
-                            val mValue: ByteArray? = bluetoothGattCharacteristic.value
+                                param.args[1] as BluetoothGattCharacteristic
+
+                            val value = param.args[2] as ByteArray
+                            val status = param.args[3] as Int // example: BluetoothGatt.GATT_SUCCESS
 
                             // 获取服务 UUID
                             val serviceUuid = bluetoothGattCharacteristic.service.uuid
 
-                            val str = mValue?.joinToString(" ") { String.format("%02x", it) } ?: ""
+                            val hex = value.joinToString(" ") { String.format("%02x", it) }
                             XposedBridge.log(
-                                "readCharacteristic hex: $str gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid"
+                                "readCharacteristic hex: $hex utf8: $value gatt-char: ${bluetoothGattCharacteristic.uuid} service: $serviceUuid status: $status"
                             )
+
                         }
                     })
 
@@ -59,3 +74,17 @@ class Hook : IXposedHookLoadPackage {
         }
     }
 }
+
+
+//private val bluetoothGattCallback = object : BluetoothGattCallback() {
+//
+//    override fun onCharacteristicRead(
+//        gatt: BluetoothGatt,
+//        characteristic: BluetoothGattCharacteristic,
+//        value: ByteArray,
+//        status: Int
+//    ) {
+//        super.onCharacteristicRead(gatt, characteristic, value, status)
+//    }
+//
+//}
