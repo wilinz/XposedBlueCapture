@@ -13,9 +13,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 class Hook : IXposedHookLoadPackage {
 
-    // 分别为 read 和 write 创建线程安全的 Set
-    private val printedWriteSet: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
-    private val printedReadSet: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap())
+    // 带时间戳的缓存
+    private val printedWriteMap: MutableMap<String, Long> = ConcurrentHashMap()
+    private val printedReadMap: MutableMap<String, Long> = ConcurrentHashMap()
+
+    private val EXPIRE_TIME = 5_000L // 5秒
 
     @Throws(Throwable::class)
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -43,8 +45,12 @@ class Hook : IXposedHookLoadPackage {
                             val hex = value.joinToString(" ") { String.format("%02x", it) }
 
                             val key = "service:$serviceUuid | char:$charUuid | hex:$hex"
+                            val now = System.currentTimeMillis()
 
-                            if (printedWriteSet.add(key)) { // 只影响 write
+                            cleanupOldEntries(printedWriteMap, now)
+
+                            if (!printedWriteMap.containsKey(key)) {
+                                printedWriteMap[key] = now
                                 XposedBridge.log(
                                     "BLE Capture writeCharacteristic: len: ${value.size} | hex: $hex | utf8: ${value.toString(Charsets.UTF_8)} | writeType: $writeType | gatt-char: $charUuid | service: $serviceUuid"
                                 )
@@ -74,8 +80,12 @@ class Hook : IXposedHookLoadPackage {
                             val hex = value.joinToString(" ") { String.format("%02x", it) }
 
                             val key = "service:$serviceUuid | char:$charUuid | hex:$hex"
+                            val now = System.currentTimeMillis()
 
-                            if (printedReadSet.add(key)) { // 只影响 read
+                            cleanupOldEntries(printedReadMap, now)
+
+                            if (!printedReadMap.containsKey(key)) {
+                                printedReadMap[key] = now
                                 XposedBridge.log(
                                     "BLE Capture onCharacteristicRead: len: ${value.size} | hex: $hex | utf8: ${value.toString(Charsets.UTF_8)} | status: $status | gatt-char: $charUuid | service: $serviceUuid"
                                 )
@@ -85,6 +95,17 @@ class Hook : IXposedHookLoadPackage {
             }
         } catch (e: Exception) {
             XposedBridge.log("BluetoothGatt Capture Exception: $e")
+        }
+    }
+
+    // 清理超过5秒的记录
+    private fun cleanupOldEntries(map: MutableMap<String, Long>, now: Long) {
+        val iterator = map.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (now - entry.value > EXPIRE_TIME) {
+                iterator.remove()
+            }
         }
     }
 }
