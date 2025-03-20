@@ -4,64 +4,51 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.util.Log
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 class Hook : IXposedHookLoadPackage {
-    @Override
-    @kotlin.Throws(Throwable::class)
+    @Throws(Throwable::class)
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         val bluetooth = lpparam.classLoader.loadClass("android.bluetooth.BluetoothGatt")
+        XposedBridge.log("hello BluetoothGatt")
         try {
             if (bluetooth != null) {
                 XposedHelpers.findAndHookMethod(bluetooth, "writeCharacteristic",
                     BluetoothGattCharacteristic::class.java, object : XC_MethodHook() {
-                        @kotlin.Throws(Throwable::class)
+                        @Throws(Throwable::class)
                         override fun afterHookedMethod(param: MethodHookParam) {
                             super.afterHookedMethod(param)
                             val bluetoothGattCharacteristic: BluetoothGattCharacteristic =
-                                param.args.get(0) as BluetoothGattCharacteristic
+                                param.args[0] as BluetoothGattCharacteristic
                             val mValue: ByteArray? = bluetoothGattCharacteristic.value
 
-                            var str: String = ""
-                            if (mValue != null) {
-                                for (i in mValue.indices) {
-                                    str += String.format("%x ", mValue.get(i))
-                                }
-                            }
-                            Log.e(
-                                "packageName" + lpparam.packageName,
-                                "writeCharacteristic   str :$str bluetoothGattCharacteristic" + bluetoothGattCharacteristic.getUuid()
-                                    .toString()
+                            val str = mValue?.joinToString(" ") { String.format("%02x", it) } ?: ""
+                            XposedBridge.log(
+                                "writeCharacteristic str: $str gatt char: ${bluetoothGattCharacteristic.uuid}"
                             )
                         }
                     })
 
                 XposedHelpers.findAndHookMethod(bluetooth, "readCharacteristic",
                     BluetoothGattCharacteristic::class.java, object : XC_MethodHook() {
-                        @kotlin.Throws(Throwable::class)
+                        @Throws(Throwable::class)
                         override fun afterHookedMethod(param: MethodHookParam) {
                             super.afterHookedMethod(param)
                             val bluetoothGattCharacteristic: BluetoothGattCharacteristic =
-                                param.args.get(0) as BluetoothGattCharacteristic
+                                param.args[0] as BluetoothGattCharacteristic
                             val mValue: ByteArray? = bluetoothGattCharacteristic.value
 
-                            var str: String = ""
-                            if (mValue != null) {
-                                for (i in mValue.indices) {
-                                    str += String.format("%x ", mValue.get(i))
-                                }
-                            }
-                            Log.e(
-                                "packageName" + lpparam.packageName,
-                                "readCharacteristic   str :$str bluetoothGattCharacteristic" + bluetoothGattCharacteristic.getUuid()
-                                    .toString()
+                            val str = mValue?.joinToString(" ") { String.format("%02x", it) } ?: ""
+                            XposedBridge.log(
+                                "readCharacteristic str: $str gatt char: ${bluetoothGattCharacteristic.uuid}"
                             )
                         }
                     })
             }
         } catch (e: Exception) {
-            Log.e("wanghaha", e.toString())
+            XposedBridge.log("BluetoothGatt Capture Exception: $e")
         }
     }
 }
