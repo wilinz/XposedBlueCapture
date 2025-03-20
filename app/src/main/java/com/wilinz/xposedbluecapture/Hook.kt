@@ -46,7 +46,7 @@ class Hook : IXposedHookLoadPackage {
 
                             if (printedWriteSet.add(key)) { // 只影响 write
                                 XposedBridge.log(
-                                    "writeCharacteristic: len: ${value.size} | hex: $hex | utf8: ${value.toString(Charsets.UTF_8)} | writeType: $writeType | gatt-char: $charUuid | service: $serviceUuid"
+                                    "BLE Capture writeCharacteristic: len: ${value.size} | hex: $hex | utf8: ${value.toString(Charsets.UTF_8)} | writeType: $writeType | gatt-char: $charUuid | service: $serviceUuid"
                                 )
                             }
                         }
@@ -77,7 +77,7 @@ class Hook : IXposedHookLoadPackage {
 
                             if (printedReadSet.add(key)) { // 只影响 read
                                 XposedBridge.log(
-                                    "onCharacteristicRead: len: ${value.size} | hex: $hex | utf8: ${value.toString(Charsets.UTF_8)} | status: $status | gatt-char: $charUuid | service: $serviceUuid"
+                                    "BLE Capture onCharacteristicRead: len: ${value.size} | hex: $hex | utf8: ${value.toString(Charsets.UTF_8)} | status: $status | gatt-char: $charUuid | service: $serviceUuid"
                                 )
                             }
                         }
